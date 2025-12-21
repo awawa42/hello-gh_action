@@ -33,3 +33,4 @@ jobs:
         run: |
           grep '' -r /sys/block/sd*/queue/rotational
           grep '' -r /etc/apt/**/*.list
+          free -m
