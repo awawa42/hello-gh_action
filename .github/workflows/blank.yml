@@ -35,3 +35,12 @@ jobs:
           grep '' -r /etc/apt/**/*.list
           free -m
           export
+      - name: Run a multi-line script 2
+        run: |
+          if grep '' -r /sys/block/sd*/queue/rotational
+          then
+          echo 1
+          else
+          echo 2
+          fi
+          
