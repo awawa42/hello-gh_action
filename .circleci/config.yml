@@ -51,7 +51,8 @@ jobs:
             sudo mount -t btrfs -o rw,noatime,compress=zstd $LB_DEV btrfs-mnt
             sudo chown $USER:$USER btrfs-mnt
             # setup zram
-            sudo sed -i -e 's/ALGO=.*/ALGO=lz4/g' -e 's/SIZE=.*/SIZE=50000/g' /etc/default/zramswap
+            sudo sed -i -e 's/ALGO=.*/ALGO=lz4/g' -e 's/#PERCENT=.*/#PERCENT=500/g' /etc/default/zramswap
+            cat /etc/default/zramswap
             sudo systemctl restart zramswap.service
 
       - run:
