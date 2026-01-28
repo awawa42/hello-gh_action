@@ -24,13 +24,14 @@ jobs:
             export APT_LISTCHANGES_FRONTEND=none
             export NEEDRESTART_MODE=a
             sudo apt-get update -y
-            sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
+            #sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
             cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
             kmod lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool \
             libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 \
             libxml2-utils lsof lzop maven openjdk-8-jdk pngcrush procps python3 \
             python-is-python3 rsync schedtool squashfs-tools wget xdelta3 xsltproc yasm zip \
             zlib1g-dev rclone zram-tools btrfs-progs
+            sudo apt-get install -y zram-tools btrfs-progs rclone
             sudo apt-get clean -y
             mkdir -p ~/bin/
             curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -69,9 +70,9 @@ jobs:
           name: "test upload"
           command: |
             cd btrfs-mnt
-            fallocate -l 300m test.bin
-            #gpg --batch --passphrase 1234 -c -z 0 --output test.gpg test.bin
-            #rclone copy test.gpg mys3:/dav/ci/
+            fallocate -l 3m test.bin
+            gpg --batch --passphrase 1234 -c -z 0 --output test2.bin test.bin
+            rclone copy *.bin mys3:/dav/ci/
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
