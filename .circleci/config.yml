@@ -89,7 +89,7 @@ jobs:
           name: "Build"
           command: |
             export ROOMSERVICE_DRYRUN=true
-            export USE_CCACHE=1
+            unset USE_CCACHE
             export CCACHE_EXEC=$(which ccache)
             export CCACHE_SLOPPINESS='time_macros,include_file_mtime,include_file_ctime'
             export CCACHE_DIR=$HOME/.cache/.ccache
@@ -100,6 +100,11 @@ jobs:
             export CCACHE_COMPILERCHECK=content
             cd ~/btrfs-mnt/los
             source ./build/envsetup.sh
+            cp -r vendor/xiaomi/whyred/proprietary/* blobs
+            cp -r vendor/xiaomi/sdm660-common/proprietary/* blobs
+            cd device/xiaomi/whyred/
+            bash extract-files.sh ../../../blobs/
+            croot
             breakfast whyred
             mka target-files-package otatools -j4
 
