@@ -52,7 +52,7 @@ jobs:
             sudo mount -t btrfs -o rw,noatime,compress=zstd $LB_DEV ~/btrfs-mnt
             sudo chown $USER:$USER ~/btrfs-mnt
             cd ~/btrfs-mnt
-            mkdir -p~/.cache
+            mkdir -p ~/.cache
             btrfs subvolume create @cache
             sudo mount -t btrfs -o rw,subvol=@cache $LB_DEV ~/.cache
             sudo chown $USER:$USER ~/.cache
