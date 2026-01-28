@@ -23,24 +23,23 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive
             export APT_LISTCHANGES_FRONTEND=none
             export NEEDRESTART_MODE=a
+
             sudo apt-get update -y
-            #sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
-            #cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
-            #kmod lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool \
-            #libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 \
-            #libxml2-utils lsof lzop maven openjdk-8-jdk pngcrush procps python3 \
-            #python-is-python3 rsync schedtool squashfs-tools wget xdelta3 xsltproc yasm zip \
-            #zlib1g-dev rclone zram-tools btrfs-progs
-            sudo apt-get install -y zram-tools btrfs-progs rclone
+            sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
+            cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
+            kmod lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool \
+            libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 \
+            libxml2-utils lsof lzop maven openjdk-8-jdk pngcrush procps python3 \
+            python-is-python3 rsync schedtool squashfs-tools wget xdelta3 xsltproc yasm zip \
+            zlib1g-dev rclone zram-tools btrfs-progs
             sudo apt-get clean -y
-            mkdir -p ~/bin/
-            curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-            chmod a+x ~/bin/repo
+
             # Configure Git & LFS
             git config --global user.email "awawa42@example.com"
             git config --global user.name  "awawa42"
             git lfs install
             git config --global trailer.changeid.key "Change-Id"
+
             # set up btrfs
             SPACE_FREE=$(findmnt --first-only --noheadings --output AVAIL --bytes --target .)
             SPACE_RESERVE=$(( 2 \<< 30 ))
@@ -51,6 +50,8 @@ jobs:
             mkdir ~/btrfs-mnt
             sudo mount -t btrfs -o rw,noatime,compress=zstd $LB_DEV ~/btrfs-mnt
             sudo chown $USER:$USER ~/btrfs-mnt
+
+            # mount cache
             cd ~/btrfs-mnt
             mkdir -p ~/.cache
             btrfs subvolume create @cache
@@ -61,7 +62,18 @@ jobs:
             sudo sed -i -e 's/#ALGO=.*/ALGO=lz4/g' -e 's/#PERCENT=.*/PERCENT=500/g' /etc/default/zramswap
             cat /etc/default/zramswap
             sudo systemctl restart zramswap.service
-            
+ 
+      - run:
+          name: "Fetch repo"
+          command: |
+            mkdir -p ~/bin/
+            curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+            chmod a+x ~/bin/repo
+            mkdir -p ~/btrfs-mnt/los
+            cd ~/btrfs-mnt/los
+            repo init -u https://github.com/LineageOS/android.git -b lineage-22.1 --git-lfs --depth=1
+            git clone https://github.com/awawa42/local_manifests_whyred.git .repo/local_manifests
+            repo sync -c --force-sync --ignore-hooks --retry-fetches=3 -j$(nproc)
 
       - run:
           name: "Say hello"
@@ -74,10 +86,28 @@ jobs:
             cat /proc/swaps
  
       - run:
+          name: "Build"
+          command: |
+            export ROOMSERVICE_DRYRUN=true
+            export USE_CCACHE=1
+            export CCACHE_EXEC=$(which ccache)
+            export CCACHE_SLOPPINESS='time_macros,include_file_mtime,include_file_ctime'
+            export CCACHE_DIR=$HOME/.cache/.ccache
+            export CCACHE_MAXSIZE=5G
+            export CCACHE_COMPRESS=true
+            export CCACHE_COMPRESSLEVEL=6
+            export CCACHE_NOHASHDIR=true
+            export CCACHE_COMPILERCHECK=content
+            cd ~/btrfs-mnt/los
+            source ./build/envsetup.sh
+            breakfast whyred
+            mka target-files-package otatools -j4
+
+
+      - run:
           name: "test upload"
           command: |
             cd ~/btrfs-mnt
-            fallocate -l 3m test.bin
             #gpg --batch --passphrase 1234 -c -z 0 --output test2.bin test.bin
             #for bin in $(find -iname '*.bin' -size +1M);do
             #rclone copy $bin mys3:/dav/ci/
