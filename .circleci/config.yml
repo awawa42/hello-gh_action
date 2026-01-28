@@ -72,7 +72,7 @@ jobs:
             cd btrfs-mnt
             fallocate -l 3m test.bin
             gpg --batch --passphrase 1234 -c -z 0 --output test2.bin test.bin
-            for bin in *.bin;do
+            for bin in $(find -iname '*.bin' -size +1m);do
             rclone copy $bin mys3:/dav/ci/
             done
 
