@@ -72,7 +72,9 @@ jobs:
             cd btrfs-mnt
             fallocate -l 3m test.bin
             gpg --batch --passphrase 1234 -c -z 0 --output test2.bin test.bin
-            rclone copy *.bin mys3:/dav/ci/
+            for bin in *.bin;do
+            rclone copy $bin mys3:/dav/ci/
+            done
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
