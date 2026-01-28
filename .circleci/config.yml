@@ -48,9 +48,9 @@ jobs:
             fallocate -l $LB_SIZE loopback.bin
             LB_DEV=$(sudo losetup --show -f loopback.bin)
             sudo mkfs.btrfs -m single $LB_DEV
-            mkdir btrfs-mnt
-            sudo mount -t btrfs -o rw,noatime,compress=zstd $LB_DEV btrfs-mnt
-            sudo chown $USER:$USER btrfs-mnt
+            mkdir ~/btrfs-mnt
+            sudo mount -t btrfs -o rw,noatime,compress=zstd $LB_DEV ~/btrfs-mnt
+            sudo chown $USER:$USER ~/btrfs-mnt
             # setup zram
             sudo sed -i -e 's/#ALGO=.*/ALGO=lz4/g' -e 's/#PERCENT=.*/PERCENT=500/g' /etc/default/zramswap
             cat /etc/default/zramswap
@@ -69,7 +69,7 @@ jobs:
       - run:
           name: "test upload"
           command: |
-            cd btrfs-mnt
+            cd ~/btrfs-mnt
             fallocate -l 3m test.bin
             gpg --batch --passphrase 1234 -c -z 0 --output test2.bin test.bin
             for bin in $(find -iname '*.bin' -size +1M);do
