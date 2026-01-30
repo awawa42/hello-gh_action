@@ -41,6 +41,6 @@ jobs:
           lscpu
           echo "AA=$AA"
           ls -la /mnt
-          dpkg -l|grep zram
-          dpkg -l|grep btrfs
-          
+          sudo dpkg -l|grep zram
+          sudo dpkg -l|grep btrfs
+          cat /mnt/DATALOSS_WARNING_README.txt
