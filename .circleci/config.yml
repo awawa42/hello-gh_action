@@ -100,14 +100,23 @@ jobs:
             export CCACHE_COMPILERCHECK=content
             cd ~/btrfs-mnt/los
             source ./build/envsetup.sh
-            cp -r vendor/xiaomi/whyred/proprietary/* blobs
-            cp -r vendor/xiaomi/sdm660-common/proprietary/* blobs
+            mkdir -p blobs
+            cp -r vendor/xiaomi/whyred/proprietary/* blobs/
+            cp -r vendor/xiaomi/sdm660-common/proprietary/* blobs/
             cd device/xiaomi/whyred/
-            bash extract-files.sh ../../../blobs/
+            bash extract-files.sh ../../../blobs/ 2>&1 |tee ../../../out/extract-files.log || true
             croot
             breakfast whyred
             mka target-files-package otatools -j4
-
+      - run:
+          name: "upload build log"
+          # always upload logs 
+          when: always
+          command: |
+            mkdir logs
+            cp out/*.log logs/
+            cp out/*.log*.gz logs/
+            rclone sync logs mys3:/dav/log/circleci_log_$(date '+%y%m%d_%H%M')
 
       - run:
           name: "test upload"
