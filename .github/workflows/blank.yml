@@ -38,6 +38,7 @@ jobs:
           echo AA=1 >>"$GITHUB_ENV"
       - name: Run a multi-line script 2
         run: |
+          set +e
           lscpu
           echo "AA=$AA"
           ls -la /mnt
