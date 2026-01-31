@@ -32,7 +32,7 @@ jobs:
             tar -c out | zstdmt -16 | rclone rcat mys3:/dav/out/circleci_out_$(date '+%y%m%d_%H%M').tzst
             tar -c $HOME/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/circleci_ccache_$(date '+%y%m%d_%H%M').tzst
             EOS
-            nohup ~/upload.sh &
+            nohup bash ~/upload.sh &
       - run:
           name: "Setup env"
           command: |
