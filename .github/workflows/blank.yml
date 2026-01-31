@@ -42,7 +42,10 @@ jobs:
         run: |
           # we need linux-modules-extra-azure for zram on GitHub Action
           # see https://lists.snapcraft.io/archives/kernel-team/2018-July/093622.html
-          sudo apt-get update -y && sudo apt-get install -y zram-tools linux-modules-extra-$(uname -r)-azure
+          if uname -r |grep azure;then
+            ZRAM_EXTRA_MODULES=linux-modules-extra-$(uname -r)
+          fi
+          sudo apt-get update -y && eval sudo apt-get install -y zram-tools $ZRAM_EXTRA_MODULES
           sudo sed -Ee "/SIZE=/c \SIZE=65535" \
             -e "/PERCENT=/c \#PERCENT=100" \
             -e "/ALGO=/c \ALGO=lz4" \
