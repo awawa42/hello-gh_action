@@ -17,6 +17,22 @@ jobs:
     steps:
       # Checkout the code as the first step.
       - checkout
+
+      - run:
+          name: "schedule a upload before possible job timeout"
+          command: |
+            cat >~\upload.sh \<<EOS
+            sleep 3000  
+            btrfs subvolume snapshot ~/btrfs-mnt/  ~/btrfs-mnt/@snap
+            cd ~/btrfs-mnt/@snap
+            df -Th > out/df.log
+            mv out/soong/.intermediates/ .
+            find out -iname '*.img' -size +100M -delete
+            find out -iname '*.zip' -size +100M -delete
+            tar -c out | zstdmt -16 | rclone rcat mys3:/dav/out/circleci_out_$(date '+%y%m%d_%H%M').tzst
+            tar -c $HOME/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/circleci_ccache_$(date '+%y%m%d_%H%M').tzst
+            EOS
+            nohup ~\upload.sh &
       - run:
           name: "Setup env"
           command: |
@@ -71,8 +87,8 @@ jobs:
             chmod a+x ~/bin/repo
             mkdir -p ~/btrfs-mnt/los
             cd ~/btrfs-mnt/los
-            repo init -u https://github.com/LineageOS/android.git -b lineage-22.1 --git-lfs --depth=1
-            git clone https://github.com/awawa42/local_manifests_whyred.git .repo/local_manifests
+            repo init -u https://github.com/LineageOS/android.git -b lineage-22.2 --git-lfs --depth=1
+            git clone https://github.com/awawa42/local_manifests_whyred.git -b lineage-22.2 .repo/local_manifests
             repo sync -c --force-sync --ignore-hooks --retry-fetches=3 -j$(nproc)
 
       - run:
@@ -81,6 +97,7 @@ jobs:
             echo Hello, World!
             pwd
             lsblk
+            lscpu
             df -Th
             free -h
             cat /proc/swaps
@@ -89,7 +106,7 @@ jobs:
           name: "Build"
           command: |
             export ROOMSERVICE_DRYRUN=true
-            unset USE_CCACHE
+            export USE_CCACHE=true
             export CCACHE_EXEC=$(which ccache)
             export CCACHE_SLOPPINESS='time_macros,include_file_mtime,include_file_ctime'
             export CCACHE_DIR=$HOME/.cache/.ccache
@@ -107,7 +124,7 @@ jobs:
             bash extract-files.sh ../../../blobs/ 2>&1 |tee ../../../out/extract-files.log || true
             croot
             breakfast whyred
-            mka target-files-package otatools -j4
+            mka target-files-package otatools -j$(nproc)
       - run:
           name: "upload build log"
           # always upload logs 
