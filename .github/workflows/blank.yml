@@ -24,16 +24,6 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - uses: awawa42/maximize-build-space@master
-        with:
-          root-reserve-mb: 1024
-          swap-size-mb: 65535
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-
       # Runs a single command using the runners shell
       - name: Run a one-line script
         run: sudo bash -c "set -x;lsblk;df -hT >>"$GITHUB_ENV""
@@ -54,6 +44,16 @@ jobs:
           sudo dpkg -l|grep zram || echo no zram packages
           sudo dpkg -l|grep btrfs || echo no btrfs packages
           [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
+
+      - name: setup zram
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y zram-tools
+          sudo sed -Ee "/SIZE=/c \SIZE=${{ inputs.swap-size-mb }}" \
+            -e "/PERCENT=/c \#PERCENT=100" \
+            -e "/ALGO=/c \ALGO=lz4" \
+            -i /etc/default/zramswap
+          cat /etc/default/zramswap
+          sudo systemctl restart zramswap.service || systemctl status zramswap.service && journalctl -xeu zramswap.service
           
       - name: Run dust
         run: |
