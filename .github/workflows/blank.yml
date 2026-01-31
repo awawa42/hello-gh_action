@@ -49,6 +49,7 @@ jobs:
           export
   
       - name: dpkg info
+        shell: zsh -e {0}
         run: |
           echo "AA=$AA"
           ls -la /mnt
