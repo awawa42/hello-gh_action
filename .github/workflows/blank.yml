@@ -24,9 +24,19 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
+      - uses: awawa42/maximize-build-space@master
+        with:
+          root-reserve-mb: 1024
+          swap-size-mb: 65535
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
       # Runs a single command using the runners shell
       - name: Run a one-line script
-        run: sudo bash -c "set -x;lsblk;df -hT;export;echo AA=3 >>"$GITHUB_ENV""
+        run: sudo bash -c "set -x;lsblk;df -hT >>"$GITHUB_ENV""
 
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
@@ -34,14 +44,19 @@ jobs:
           grep '' -r /sys/block/sd*/queue/rotational
           grep '' -r /etc/apt/**/*.list
           free -m
-          export
           echo AA=1 >>"$GITHUB_ENV"
+          lscpu
+          export
       - name: Run a multi-line script 2
         run: |
-          set +e
-          lscpu
           echo "AA=$AA"
           ls -la /mnt
-          sudo dpkg -l|grep zram
-          sudo dpkg -l|grep btrfs
-          cat /mnt/DATALOSS_WARNING_README.txt
+          sudo dpkg -l|grep zram || echo no zram packages
+          sudo dpkg -l|grep btrfs || echo no btrfs packages
+          [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
+          
+      - name: Run dust
+        run: |
+          wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
+          sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
+          dust -x -n 200 /
