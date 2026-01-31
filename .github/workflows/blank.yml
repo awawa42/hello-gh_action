@@ -38,6 +38,7 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
+          btrfs: 'true'
 
       # Runs a single command using the runners shell
       - name: disk info
@@ -63,7 +64,7 @@ jobs:
           sudo dpkg -l|grep btrfs || echo no btrfs packages
           true
           mkdir dpkginfo
-          sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -nr|head -n30 > dpkginfo/dpkg.lst
+          sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -nr | head -n50 | tee dpkginfo/dpkg.lst
           echo '' >dpkginfo/dpkg-files.lst
           for s p in $(cat dpkginfo/dpkg.lst);do
             echo "$(($s>>10))MB $p" >>dpkginfo/dpkg-files.lst
