@@ -35,29 +35,44 @@ jobs:
           remove-docker-images: 'true'
 
       # Runs a single command using the runners shell
-      - name: Run a one-line script
+      - name: disk info
         run: sudo bash -c "set -x;lsblk;df -hT"
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: more info
         run: |
           grep '' -r /sys/block/sd*/queue/rotational
           grep '' -r /etc/apt/**/*.list
           free -m
-          echo AA=1 >>"$GITHUB_ENV"
           lscpu
+          echo AA=1 >>"$GITHUB_ENV"
           export
-      - name: Run a multi-line script 2
+  
+      - name: dpkg info
         run: |
           echo "AA=$AA"
           ls -la /mnt
+          [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
           sudo dpkg -l|grep zram || echo no zram packages
           sudo dpkg -l|grep btrfs || echo no btrfs packages
-          [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
           true
+          mkdir dpkginfo
+          sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -nr|head -n30 > dpkginfo/dpkg.lst
+          echo '' >dpkginfo/dpkg-files.lst
+          for s p in $(cat dpkginfo/dpkg.lst);do
+            echo "$(($s>>10))MB $p" >>dpkginfo/dpkg-files.lst
+            echo '=======================================================================' >>dpkginfo/dpkg-files.lst
+            dpkg --listfiles $p  >>dpkginfo/dpkg-files.lst
+            echo '=======================================================================' >>dpkginfo/dpkg-files.lst
+          done
           
       - name: Run dust
         run: |
           wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
           sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
-          dust -x -n 200 /
+          dust -x -n 300 / >>dpkginfo/dust.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: my-artifact
+          path: dpkginfo/
