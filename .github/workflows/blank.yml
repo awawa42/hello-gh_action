@@ -54,6 +54,7 @@ jobs:
           sudo dpkg -l|grep zram || echo no zram packages
           sudo dpkg -l|grep btrfs || echo no btrfs packages
           [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
+          true
           
       - name: Run dust
         run: |
