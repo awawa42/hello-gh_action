@@ -21,7 +21,7 @@ jobs:
       - run:
           name: "schedule a upload before possible job timeout"
           command: |
-            cat >~\upload.sh \<<EOS
+            cat >~/upload.sh \<<EOS
             sleep 3000  
             btrfs subvolume snapshot $HOME/btrfs-mnt/  $HOME/btrfs-mnt/@snap
             cd $HOME/btrfs-mnt/@snap
@@ -32,7 +32,7 @@ jobs:
             tar -c out | zstdmt -16 | rclone rcat mys3:/dav/out/circleci_out_$(date '+%y%m%d_%H%M').tzst
             tar -c $HOME/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/circleci_ccache_$(date '+%y%m%d_%H%M').tzst
             EOS
-            nohup ~\upload.sh &
+            nohup ~/upload.sh &
       - run:
           name: "Setup env"
           command: |
