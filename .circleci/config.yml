@@ -23,8 +23,8 @@ jobs:
           command: |
             cat >~\upload.sh \<<EOS
             sleep 3000  
-            btrfs subvolume snapshot ~/btrfs-mnt/  ~/btrfs-mnt/@snap
-            cd ~/btrfs-mnt/@snap
+            btrfs subvolume snapshot $HOME/btrfs-mnt/  $HOME/btrfs-mnt/@snap
+            cd $HOME/btrfs-mnt/@snap
             df -Th > out/df.log
             mv out/soong/.intermediates/ .
             find out -iname '*.img' -size +100M -delete
