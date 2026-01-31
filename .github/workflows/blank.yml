@@ -37,13 +37,6 @@ jobs:
           echo AA=1 >>"$GITHUB_ENV"
           lscpu
           export
-      - name: Run a multi-line script 2
-        run: |
-          echo "AA=$AA"
-          ls -la /mnt
-          sudo dpkg -l|grep zram || echo no zram packages
-          sudo dpkg -l|grep btrfs || echo no btrfs packages
-          [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
 
       - name: setup zram
         run: |
@@ -60,3 +53,11 @@ jobs:
           wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
           sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
           dust -x -n 200 /
+      - name: Run a multi-line script 2
+        run: |
+          echo "AA=$AA"
+          ls -la /mnt
+          sudo dpkg -l|grep zram || echo no zram packages
+          sudo dpkg -l|grep btrfs || echo no btrfs packages
+          [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
+          true
