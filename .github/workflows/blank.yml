@@ -40,6 +40,7 @@ jobs:
           remove-aggressive: 'true'
           remove-docker-images: 'true'
           btrfs: 'true'
+          min-space-gb: 140
 
       # Runs a single command using the runners shell
       - name: disk info
