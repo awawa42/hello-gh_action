@@ -131,8 +131,8 @@ jobs:
           when: always
           command: |
             mkdir logs
-            cp out/*.log logs/
-            cp out/*.log*.gz logs/
+            cp $HOME/btrfs-mnt/los/out/*.log logs/
+            cp $HOME/btrfs-mnt/los/out/*.log*.gz logs/
             rclone sync logs mys3:/dav/log/circleci_log_$(date '+%y%m%d_%H%M')
 
       - run:
