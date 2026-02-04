@@ -11,19 +11,38 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
+env:
+  WF_TEST: 1234
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    env:
+      RCLONE_CONFIG_MYS3_TYPE: s3
+      RCLONE_CONFIG_MYS3_PROVIDER: Rclone
+      RCLONE_S3_UPLOAD_CUTOFF: 90M
+      RCLONE_S3_CHUNK_SIZE: 50M
+      RCLONE_CONFIG_MYS3_ACCESS_KEY_ID: ${{ secrets.RCLONE_CONFIG_MYS3_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_MYS3_SECRET_ACCESS_KEY: ${{ secrets.RCLONE_CONFIG_MYS3_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_MYS3_ENDPOINT: ${{ secrets.RCLONE_CONFIG_MYS3_ENDPOINT }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+    
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
+      - name: "schedule a upload before possible job timeout"
+        run: |
+          cat >~/upload.sh \<<EOS
+          sleep 200
+          mkdir -p $GITHUB_WORKSPACE/.cache/.ccache
+          touch $GITHUB_WORKSPACE/.cache/.ccache/test
+          tar -c $GITHUB_WORKSPACE/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$branch.tzst
+          EOS
+          nohup bash ~/upload.sh &
       # Runs a single command using the runners shell
       - name: Run a one-line script
         run: sudo bash -c "set -x;lsblk;df -hT"
@@ -45,7 +64,7 @@ jobs:
           if uname -r |grep azure;then
             ZRAM_EXTRA_MODULES=linux-modules-extra-$(uname -r)
           fi
-          sudo apt-get update -y && eval sudo apt-get install -y zram-tools $ZRAM_EXTRA_MODULES
+          sudo apt-get update -y && eval sudo apt-get install -y rclone zram-tools $ZRAM_EXTRA_MODULES
           sudo sed -Ee "/SIZE=/c \SIZE=65535" \
             -e "/PERCENT=/c \#PERCENT=100" \
             -e "/ALGO=/c \ALGO=lz4" \
@@ -53,16 +72,17 @@ jobs:
           cat /etc/default/zramswap
           sudo systemctl restart zramswap.service || systemctl status zramswap.service && journalctl -xeu zramswap.service
           
-      - name: Run dust
-        run: |
-          wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
-          sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
-          dust -x -n 200 /
+
       - name: Run a multi-line script 2
         run: |
           echo "AA=$AA"
+          echo "WF_TEST $WF_TEST"
           ls -la /mnt
           sudo dpkg -l|grep zram || echo no zram packages
           sudo dpkg -l|grep btrfs || echo no btrfs packages
           [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
           true
+          set +e
+          nohup sleep 600 2>&1 &
+          fg
+          echo fin
