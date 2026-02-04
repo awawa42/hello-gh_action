@@ -36,11 +36,12 @@ jobs:
 
       - name: "schedule a upload before possible job timeout"
         run: |
-          cat >~/upload.sh \<<EOS
-          sleep 200
+          cat >~/upload.sh <<EOS
+          sleep 180
           mkdir -p $GITHUB_WORKSPACE/.cache/.ccache
           touch $GITHUB_WORKSPACE/.cache/.ccache/test
           tar -c $GITHUB_WORKSPACE/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$branch.tzst
+          kill -9 $(cat /tmp/pid)
           EOS
           nohup bash ~/upload.sh &
       # Runs a single command using the runners shell
@@ -84,5 +85,6 @@ jobs:
           true
           set +e
           nohup sleep 600 2>&1 &
+          echo $! > /tmp/pid
           fg
           echo fin
