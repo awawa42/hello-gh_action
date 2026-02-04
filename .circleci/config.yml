@@ -12,6 +12,8 @@ jobs:
       image: ubuntu-2204:edge
     resource_class: large
     #resource_class: medium
+    environment:
+      branch: lineage-22.1
     # Add steps to the job
     # See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#steps-overview & https://circleci.com/docs/reference/configuration-reference/#steps
     steps:
@@ -29,8 +31,8 @@ jobs:
             mv out/soong/.intermediates/ .
             find out -iname '*.img' -size +100M -delete
             find out -iname '*.zip' -size +100M -delete
-            tar -c out | zstdmt -16 | rclone rcat mys3:/dav/out/circleci_out_$(date '+%y%m%d_%H%M').tzst
-            tar -c $HOME/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/circleci_ccache_$(date '+%y%m%d_%H%M').tzst
+            tar -c out | zstdmt -16 | rclone rcat mys3:/dav/out/circleci_out_$branch .tzst
+            tar -c $HOME/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/circleci_ccache_$branch.tzst
             EOS
             nohup bash ~/upload.sh &
       - run:
@@ -87,8 +89,8 @@ jobs:
             chmod a+x ~/bin/repo
             mkdir -p ~/btrfs-mnt/los
             cd ~/btrfs-mnt/los
-            repo init -u https://github.com/LineageOS/android.git -b lineage-22.1 --git-lfs --depth=1 -g 'default,-darwin,-infra' -p linux
-            git clone https://github.com/awawa42/local_manifests_whyred.git -b lineage-22.1 .repo/local_manifests
+            repo init -u https://github.com/LineageOS/android.git -b $branch --git-lfs --depth=1 -g 'default,-darwin,-infra' -p linux
+            git clone https://github.com/awawa42/local_manifests_whyred.git -b $branch .repo/local_manifests
             repo sync -c --force-sync --ignore-hooks --retry-fetches=3 -j$(nproc)
 
       - run:
@@ -115,6 +117,7 @@ jobs:
             export CCACHE_COMPRESSLEVEL=6
             export CCACHE_NOHASHDIR=true
             export CCACHE_COMPILERCHECK=content
+            mkdir -p $CCACHE_DIR
             cd ~/btrfs-mnt/los
             source ./build/envsetup.sh
             mkdir -p blobs
@@ -124,7 +127,7 @@ jobs:
             bash extract-files.sh ../../../blobs/ 2>&1 |tee ../../../out/extract-files.log || true
             croot
             breakfast whyred
-            mka native -j$(nproc)
+            mka host -j$(nproc)
       - run:
           name: "upload build log"
           # always upload logs 
