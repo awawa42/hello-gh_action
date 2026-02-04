@@ -39,7 +39,7 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive
             export APT_LISTCHANGES_FRONTEND=none
             export NEEDRESTART_MODE=a
-
+            sed '/security.ubuntu/d' -i /etc/apt/sources.list
             sudo apt-get update -y
             sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
             cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
@@ -87,8 +87,8 @@ jobs:
             chmod a+x ~/bin/repo
             mkdir -p ~/btrfs-mnt/los
             cd ~/btrfs-mnt/los
-            repo init -u https://github.com/LineageOS/android.git -b lineage-22.2 --git-lfs --depth=1
-            git clone https://github.com/awawa42/local_manifests_whyred.git -b lineage-22.2 .repo/local_manifests
+            repo init -u https://github.com/LineageOS/android.git -b lineage-22.1 --git-lfs --depth=1 -g 'default,-darwin,-infra' -p linux
+            git clone https://github.com/awawa42/local_manifests_whyred.git -b lineage-22.1 .repo/local_manifests
             repo sync -c --force-sync --ignore-hooks --retry-fetches=3 -j$(nproc)
 
       - run:
@@ -124,7 +124,7 @@ jobs:
             bash extract-files.sh ../../../blobs/ 2>&1 |tee ../../../out/extract-files.log || true
             croot
             breakfast whyred
-            mka target-files-package otatools -j$(nproc)
+            mka native -j$(nproc)
       - run:
           name: "upload build log"
           # always upload logs 
