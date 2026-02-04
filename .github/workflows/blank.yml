@@ -79,6 +79,7 @@ jobs:
           mkdir -p ~/bin/
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
+          export PATH=~/bin/:$PATH
           mkdir -p $GITHUB_WORKSPACE/los
           cd $GITHUB_WORKSPACE/los
           repo init -u https://github.com/LineageOS/android.git -b $LOS_BRANCH --git-lfs --depth=1 -g 'default,-darwin,-infra' -p linux
@@ -131,4 +132,5 @@ jobs:
           bash extract-files.sh ../../../blobs/ 2>&1 |tee ../../../out/extract-files.log || true
           croot
           breakfast whyred
+          rm -rf .repo
           m native -j$(nproc)
