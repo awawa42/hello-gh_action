@@ -39,7 +39,7 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive
             export APT_LISTCHANGES_FRONTEND=none
             export NEEDRESTART_MODE=a
-            sed '/security.ubuntu/d' -i /etc/apt/sources.list
+            sudo sed '/security.ubuntu/d' -i /etc/apt/sources.list
             sudo apt-get update -y
             sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
             cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
