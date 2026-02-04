@@ -77,11 +77,11 @@ jobs:
             echo '=======================================================================' >>dpkginfo/dpkg-files.lst
           done
           
-      - name: Run dust
-        run: |
-          wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
-          sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
-          dust -x -n 300 / >>dpkginfo/dust.txt
+   #   - name: Run dust
+  #      run: |
+          #wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
+          #sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
+          #dust -x -n 300 / >>dpkginfo/dust.txt
 
       - uses: actions/upload-artifact@v4
         with:
