@@ -37,10 +37,11 @@ jobs:
       - name: "schedule a upload before possible job timeout"
         run: |
           cat >~/upload.sh <<EOS
-          sleep 180
+          sleep 50
           mkdir -p $GITHUB_WORKSPACE/.cache/.ccache
-          touch $GITHUB_WORKSPACE/.cache/.ccache/test
+          cat /tmp/pid >$GITHUB_WORKSPACE/.cache/.ccache/test
           tar -c $GITHUB_WORKSPACE/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$branch.tzst
+          echo $(cat /tmp/pid)
           kill -9 $(cat /tmp/pid)
           EOS
           nohup bash ~/upload.sh &
@@ -84,8 +85,9 @@ jobs:
           [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
           true
           set +e
-          sleep 600 2>&1 &
+          sleep 180 2>&1 &
           PID=$!
+          echo $PID
           echo $PID >/tmp/pid
           wait $PID
           echo fin
