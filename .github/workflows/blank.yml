@@ -18,17 +18,49 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
-
+    env:
+      RCLONE_CONFIG_MYS3_TYPE: s3
+      RCLONE_CONFIG_MYS3_PROVIDER: Rclone
+      RCLONE_S3_UPLOAD_CUTOFF: 90M
+      RCLONE_S3_CHUNK_SIZE: 50M
+      RCLONE_CONFIG_MYS3_ACCESS_KEY_ID: ${{ secrets.RCLONE_CONFIG_MYS3_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_MYS3_SECRET_ACCESS_KEY: ${{ secrets.RCLONE_CONFIG_MYS3_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_MYS3_ENDPOINT: ${{ secrets.RCLONE_CONFIG_MYS3_ENDPOINT }}
+      LOS_BRANCH: lineage-22.1
+ 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
       
-      - name: install zsh
+      - name: "schedule a upload before possible job timeout"
         run: |
+          cat >~/upload.sh <<EOS
+          sleep $(( 3600 *5 + 1000 ))
+          mkdir -p $GITHUB_WORKSPACE/.cache/.ccache
+          tar -c $GITHUB_WORKSPACE/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$LOS_BRANCH.tzst
+          tar -c $GITHUB_WORKSPACE/los/out/host | zstdmt -1 | rclone rcat mys3:/dav/out/host_$LOS_BRANCH.tzst
+          EOS
+          nohup bash ~/upload.sh &
+      - name: Setup env
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          export APT_LISTCHANGES_FRONTEND=none
+          export NEEDRESTART_MODE=a
+          sudo sed '/security.ubuntu/d' -i /etc/apt/sources.list
           sudo apt-get update -y
-          sudo apt-get install zsh -y
-          
+          sudo apt-get install -y bc bison bsdmainutils build-essential ccache cgpt clang \
+          cron curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick \
+          kmod lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool \
+          libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 \
+          libxml2-utils lsof lzop maven pngcrush procps python3 \
+          python-is-python3 rsync schedtool squashfs-tools wget xdelta3 xsltproc yasm zip \
+          zlib1g-dev rclone zram-tools btrfs-progs
+          # Configure Git & LFS
+          git config --global user.email "awawa42@example.com"
+          git config --global user.name  "awawa42"
+          git lfs install
+
       - uses: awawa42/maximize-build-space@master
         with:
           root-reserve-mb: 1024
@@ -40,8 +72,19 @@ jobs:
           remove-aggressive: 'true'
           remove-docker-images: 'true'
           btrfs: 'true'
-          min-space-gb: 140
+          min-space-gb: 110
 
+      - name: "Fetch repo"
+        run: |
+          mkdir -p ~/bin/
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          mkdir -p $GITHUB_WORKSPACE/los
+          cd $GITHUB_WORKSPACE/los
+          repo init -u https://github.com/LineageOS/android.git -b $LOS_BRANCH --git-lfs --depth=1 -g 'default,-darwin,-infra' -p linux
+          git clone https://github.com/awawa42/local_manifests_whyred.git -b $LOS_BRANCH .repo/local_manifests
+          repo sync -c --force-sync --ignore-hooks --retry-fetches=5 -j$(nproc)
+          
       # Runs a single command using the runners shell
       - name: disk info
         run: sudo bash -c "set -x;lsblk;df -hT"
@@ -55,36 +98,37 @@ jobs:
           lscpu
           echo AA=1 >>"$GITHUB_ENV"
           export
-  
-      - name: dpkg info
-        shell: zsh -e {0}
-        run: |
-          echo "AA=$AA"
-          ls -la /mnt
-          [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
-          sudo dpkg -l|grep zram || echo no zram packages
-          sudo dpkg -l|grep btrfs || echo no btrfs packages
-          which java || echo no java
-          which python || echo no python
-          which go || echo no golang
-          true
-          mkdir dpkginfo
-          sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -nr | head -n50 | tee dpkginfo/dpkg.lst
-          echo '' >dpkginfo/dpkg-files.lst
-          for s p in $(cat dpkginfo/dpkg.lst);do
-            echo "$(($s>>10))MB $p" >>dpkginfo/dpkg-files.lst
-            echo '=======================================================================' >>dpkginfo/dpkg-files.lst
-            dpkg --listfiles $p  >>dpkginfo/dpkg-files.lst
-            echo '=======================================================================' >>dpkginfo/dpkg-files.lst
-          done
-          
-   #   - name: Run dust
-  #      run: |
-          #wget https://github.com/bootandy/dust/releases/download/v1.2.4/du-dust_1.2.4-1_amd64.deb
-          #sudo apt install -y ./du-dust_1.2.4-1_amd64.deb
-          #dust -x -n 300 / >>dpkginfo/dust.txt
 
-      - uses: actions/upload-artifact@v4
+      - name: Cache
+        uses: actions/cache@v5.0.3
         with:
-          name: my-artifact
-          path: dpkginfo/
+        # A list of files, directories, and wildcard patterns to cache and restore
+          path: |
+            $GITHUB_WORKSPACE/los/out/host/
+            $GITHUB_WORKSPACE/.cache/.ccache 
+          # An explicit key for restoring and saving the cache
+          key: ${{ env.LOS_BRANCH }}
+
+      - name: "Build"
+        run: |
+          export ROOMSERVICE_DRYRUN=true
+          export USE_CCACHE=true
+          export CCACHE_EXEC=$(which ccache)
+          export CCACHE_SLOPPINESS='time_macros,include_file_mtime,include_file_ctime'
+          export CCACHE_DIR=$GITHUB_WORKSPACE/.cache/.ccache
+          export CCACHE_MAXSIZE=6G
+          export CCACHE_COMPRESS=true
+          export CCACHE_COMPRESSLEVEL=6
+          export CCACHE_NOHASHDIR=true
+          export CCACHE_COMPILERCHECK=content
+          mkdir -p $CCACHE_DIR
+          cd $GITHUB_WORKSPACE/los
+          source ./build/envsetup.sh
+          mkdir -p blobs
+          cp -r vendor/xiaomi/whyred/proprietary/* blobs/
+          cp -r vendor/xiaomi/sdm660-common/proprietary/* blobs/
+          cd device/xiaomi/whyred/
+          bash extract-files.sh ../../../blobs/ 2>&1 |tee ../../../out/extract-files.log || true
+          croot
+          breakfast whyred
+          m native -j$(nproc)
