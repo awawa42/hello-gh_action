@@ -84,7 +84,8 @@ jobs:
           [ -r /mnt/DATALOSS_WARNING_README.txt ] && cat /mnt/DATALOSS_WARNING_README.txt
           true
           set +e
-          nohup sleep 600 2>&1 &
-          echo $! > /tmp/pid
-          fg
+          sleep 600 2>&1 &
+          PID=$!
+          echo $PID >/tmp/pid
+          wait $PID
           echo fin
