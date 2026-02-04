@@ -42,7 +42,7 @@ jobs:
           cat /tmp/pid >$GITHUB_WORKSPACE/.cache/.ccache/test
           tar -c $GITHUB_WORKSPACE/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$branch.tzst
           echo $(cat /tmp/pid)
-          kill -9 $(cat /tmp/pid)
+          sudo kill -9 $(cat /tmp/pid)
           EOS
           nohup bash ~/upload.sh &
       # Runs a single command using the runners shell
