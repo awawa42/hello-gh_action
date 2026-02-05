@@ -36,10 +36,10 @@ jobs:
       - name: "schedule a upload before possible job timeout"
         run: |
           cat >~/upload.sh <<EOS
-          sleep $(( 3600 *5 + 1000 ))
+          sleep $(( 3600 *5 + 1800 ))
           mkdir -p $GITHUB_WORKSPACE/.cache/.ccache
-          tar -c $GITHUB_WORKSPACE/.cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$LOS_BRANCH.tzst
-          tar -c $GITHUB_WORKSPACE/los/out/host | zstdmt -1 | rclone rcat mys3:/dav/out/host_$LOS_BRANCH.tzst
+          tar -c -C $GITHUB_WORKSPACE/ .cache/.ccache | zstdmt -1 | rclone rcat mys3:/dav/out/ccache_$LOS_BRANCH.tzst
+          tar -c -C $GITHUB_WORKSPACE/ los/out/host | zstdmt -3 | rclone rcat mys3:/dav/out/host_$LOS_BRANCH.tzst
           EOS
           nohup bash ~/upload.sh &
       - name: Setup env
@@ -84,7 +84,7 @@ jobs:
           cd $GITHUB_WORKSPACE/los
           repo init -u https://github.com/LineageOS/android.git -b $LOS_BRANCH --git-lfs --depth=1 -g 'default,-darwin,-infra' -p linux
           git clone https://github.com/awawa42/local_manifests_whyred.git -b $LOS_BRANCH .repo/local_manifests
-          repo sync -c --force-sync --ignore-hooks --retry-fetches=5 -j$(nproc)
+          repo sync -c --force-sync --ignore-hooks --retry-fetches=5 -j$(( $(nproc)+1 ))
           
       # Runs a single command using the runners shell
       - name: disk info
@@ -109,6 +109,19 @@ jobs:
             $GITHUB_WORKSPACE/.cache/.ccache 
           # An explicit key for restoring and saving the cache
           key: ${{ env.LOS_BRANCH }}
+ 
+      - name: Check cache
+        run: |
+          set +x
+          if [ "$(du -s --block-size=1k $GITHUB_WORKSPACE/.cache/.ccache | cut -f1)" -lt 1024 ];then
+            rclone cat mys3:/dav/out/ccache_$LOS_BRANCH.tzst | tar -C $GITHUB_WORKSPACE/ --zstd -xf
+            du -sh $GITHUB_WORKSPACE/.cache/.ccache
+          fi
+          if [ "$(du -s --block-size=1k $GITHUB_WORKSPACE/los/out/host | cut -f1)" -lt 1024 ];then
+            rclone cat mys3:/dav/out/host_$LOS_BRANCH.tzst | tar -C $GITHUB_WORKSPACE/ --zstd -xf
+            du -sh $GITHUB_WORKSPACE/los/out/host
+          fi
+          echo Checking cache finish
 
       - name: "Build"
         run: |
@@ -133,4 +146,5 @@ jobs:
           croot
           breakfast whyred
           rm -rf .repo
-          m native -j$(nproc)
+          m native -j$(( $(nproc)+1 ))
+          m host -j$(( $(nproc)+1 ))
