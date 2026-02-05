@@ -114,11 +114,11 @@ jobs:
         run: |
           set +x
           if [ ! -d $GITHUB_WORKSPACE/.cache/.ccache ] || [ "$(du -s --block-size=1k $GITHUB_WORKSPACE/.cache/.ccache | cut -f1)" -lt 1024 ];then
-            rclone cat mys3:/dav/out/ccache_$LOS_BRANCH.tzst | tar -C $GITHUB_WORKSPACE/ --zstd -xf
+            rclone cat mys3:/dav/out/ccache_$LOS_BRANCH.tzst | tar -C $GITHUB_WORKSPACE/ --zstd -x
             du -sh $GITHUB_WORKSPACE/.cache/.ccache
           fi
           if [ ! -d $GITHUB_WORKSPACE/los/out/host ] || [ "$(du -s --block-size=1k $GITHUB_WORKSPACE/los/out/host | cut -f1)" -lt 1024 ];then
-            rclone cat mys3:/dav/out/host_$LOS_BRANCH.tzst | tar -C $GITHUB_WORKSPACE/ --zstd -xf
+            rclone cat mys3:/dav/out/host_$LOS_BRANCH.tzst | tar -C $GITHUB_WORKSPACE/ --zstd -x
             du -sh $GITHUB_WORKSPACE/los/out/host
           fi
           echo Checking cache finish
